@@ -69,6 +69,8 @@ const App: React.FC = () => {
   const [tree, setTree] = useState<TreeNode>(initialTreeNode);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [numCategories, setNumCategories] = useState(2);
 
   // Convert TreeNode to React Flow nodes and edges
   const updateGraph = (treeNode: TreeNode) => {
@@ -258,6 +260,22 @@ const updateNodePosition = (
 
   return (
     <ReactFlowProvider>
+      <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, display: "flex", flexDirection: "column" }}>
+        <input
+          type="password"
+          placeholder="Enter OpenAI API Key"
+          style={{ padding: '5px', width: '150px' }}
+          value={openaiApiKey}
+          onChange={(e) => setOpenaiApiKey(e.target.value)}
+        />
+        <input
+          type="number"
+          placeholder="Enter number of categories"
+          style={{ padding: '5px', width: '150px' }}
+          value={numCategories}
+          onChange={(e) => setNumCategories(parseInt(e.target.value))}
+        />
+      </div>
       <div style={{ width: '100%', height: '100vh' }}>
         <ReactFlow
           nodes={nodes}
