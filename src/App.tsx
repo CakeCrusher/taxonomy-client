@@ -14,9 +14,10 @@ import ReactFlow, {
   OnNodesChange,
   OnEdgesChange,
 } from 'react-flow-renderer';
-import { TreeNode, Category, Item } from './models';
+import { TreeNode, Category, Item, ClassifiedItem } from './models';
 import NodeComponent from './NodeComponent';
 import dagre from 'dagre';
+import axios from 'axios';
 
 const nodeWidth = 150;
 const nodeHeight = 100;
@@ -51,9 +52,16 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
 };
 
 const sampleItems: Item[] = [
-  { id: 'item1', name: 'Item 1' },
-  { id: 'item2', name: 'Item 2' },
-  { id: 'item3', name: 'Item 3' },
+  {"id": "🦘", "name": "Kangaroo", "fun_fact": "Can hop at high speeds", "lifespan_years": 23, "emoji": "🦘"},
+  {"id": "🐨", "name": "Koala", "fun_fact": "Sleeps up to 22 hours a day", "lifespan_years": 18, "emoji": "🐨"},
+  {"id": "🐘", "name": "Elephant", "fun_fact": "Largest land animal", "lifespan_years": 60, "emoji": "🐘"},
+  {"id": "🐕", "name": "Dog", "fun_fact": "Best friend of humans", "lifespan_years": 15, "emoji": "🐕"},
+  {"id": "🐄", "name": "Cow", "fun_fact": "Gives milk", "lifespan_years": 20, "emoji": "🐄"},
+  {"id": "🐁", "name": "Mouse", "fun_fact": "Can squeeze through tiny gaps", "lifespan_years": 2, "emoji": "🐁"},
+  {"id": "🐊", "name": "Crocodile", "fun_fact": "Lives in water and land", "lifespan_years": 70, "emoji": "🐊"},
+  {"id": "🐍", "name": "Snake", "fun_fact": "No legs", "lifespan_years": 9, "emoji": "🐍"},
+  {"id": "🐢", "name": "Turtle", "fun_fact": "Can live over 100 years", "lifespan_years": 100, "emoji": "🐢"},
+  {"id": "🦎", "name": "Gecko", "fun_fact": "Can climb walls", "lifespan_years": 5, "emoji": "🦎"}
   // Add more items as needed
 ];
 
@@ -151,60 +159,96 @@ const App: React.FC = () => {
     updateGraph(tree);
   };
 
-  const handleGenerateCategories = (node: TreeNode) => {
-    const parentPosition = node.position;
-    const offsetY = 300;
-    const offsetX = 200;
+  const handleGenerateCategories = async (node: TreeNode) => {
+    if (!openaiApiKey) {
+      alert('Please enter your OpenAI API Key');
+      return;
+    }
   
-    // Positioning new children
-    const positions = [
-      { x: parentPosition.x - offsetX, y: parentPosition.y + offsetY },
-      { x: parentPosition.x + offsetX, y: parentPosition.y + offsetY },
-    ];
+    try {
+      // Make API call to generate subcategories
+      const response = await axios.post('http://localhost:4000/generate_classes', {
+        items: node.items,
+        category: node.value,
+        num_categories: numCategories,
+        api_key: openaiApiKey,
+      });
   
-    // Example: Generate two child categories
-    const child1: TreeNode = {
-      value: {
-        name: `${node.value.name} Child 1`,
-        description: 'Description of Child 1',
-      },
-      children: [],
-      parent: node,
-      items: [],
-      position: positions[0], // Set position
-    };
+      const newCategories: Category[] = response.data.categories;
   
-    const child2: TreeNode = {
-      value: {
-        name: `${node.value.name} Child 2`,
-        description: 'Description of Child 2',
-      },
-      children: [],
-      parent: node,
-      items: [],
-      position: positions[1], // Set position
-    };
+      // Create new child nodes with positions relative to the parent
+      const newChildren: TreeNode[] = newCategories.map((category, index) => ({
+        value: category,
+        children: [],
+        parent: node,
+        items: [],
+        position: {
+          x: node.position.x + (index - (newCategories.length - 1) / 2) * 200,
+          y: node.position.y + 150,
+        },
+      }));
   
-    node.children.push(child1, child2);
-    setTree({ ...tree }); // Trigger re-render
-    updateGraph(tree);
+      // Add new children to the node
+      node.children.push(...newChildren);
+  
+      // Update the tree and graph
+      setTree({ ...tree });
+      updateGraph(tree);
+    } catch (error) {
+      console.error('Error generating categories:', error);
+      alert('Failed to generate categories. Please check the console for details.');
+    }
   };
 
-  const handleClassifyItems = (node: TreeNode) => {
-    if (node.children.length === 0 || node.items.length === 0) return;
-
-    // Simple classification: Distribute items equally among children
-    const itemsPerChild = Math.ceil(node.items.length / node.children.length);
-    node.children.forEach((child, index) => {
-      child.items = node.items.slice(
-        index * itemsPerChild,
-        (index + 1) * itemsPerChild
-      );
-    });
-    node.items = [];
-    setTree({ ...tree });
-    updateGraph(tree);
+  const handleClassifyItems = async (node: TreeNode) => {
+    if (!openaiApiKey) {
+      alert('Please enter your OpenAI API Key');
+      return;
+    }
+  
+    if (node.children.length === 0 || node.items.length === 0) {
+      alert('No children or items to classify.');
+      return;
+    }
+  
+    try {
+      // Collect child categories
+      const childCategories = node.children.map((child) => child.value);
+  
+      // Make API call to classify items
+      const response = await axios.post('http://localhost:4000/classify_items', {
+        categories: childCategories,
+        items: node.items,
+        api_key: openaiApiKey,
+      });
+  
+      const classifiedItems: ClassifiedItem[] = response.data.classified_items;
+  
+      // Clear items from current node
+      node.items = [];
+  
+      // Clear items from child nodes
+      node.children.forEach((child) => {
+        child.items = [];
+      });
+  
+      // Assign items to the appropriate child nodes
+      classifiedItems.forEach(({ item, category }) => {
+        const childNode = node.children.find((child) => child.value.name === category.name);
+        if (childNode) {
+          childNode.items.push(item);
+        }
+      });
+  
+      // Update the tree and graph
+      setTree({ ...tree });
+      updateGraph(tree);
+    } catch (error) {
+      console.error('Error classifying items:', error);
+      alert('Failed to classify items. Please check the console for details.');
+    }
   };
+  
 
   const onNodesChange: OnNodesChange = (changes) => {
     let treeUpdated = false;
