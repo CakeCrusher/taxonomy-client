@@ -79,12 +79,15 @@ const App: React.FC = () => {
       newNodes.push({
         id: node.value.name,
         type: 'customNode',
-        position: node.position, // Use position from TreeNode
+        position: node.position,
         data: {
           category: node.value,
           items: node.items,
           onGenerateCategories: () => handleGenerateCategories(node),
           onClassifyItems: () => handleClassifyItems(node),
+          onDeleteNode: () => handleDeleteNode(node),
+          onSaveNode: (updatedCategory: Category, updatedItems: Item[]) =>
+            handleSaveNode(node, updatedCategory, updatedItems),
         },
       });
   
@@ -109,6 +112,42 @@ const App: React.FC = () => {
   React.useEffect(() => {
     updateGraph(tree);
   }, [tree]);
+
+  const handleSaveNode = (
+    node: TreeNode,
+    updatedCategory: Category,
+    updatedItems: Item[]
+  ) => {
+    // Update the node's category and items
+    node.value = updatedCategory;
+    node.items = updatedItems;
+  
+    // Trigger re-render by updating the tree state
+    setTree({ ...tree });
+    updateGraph(tree);
+  };
+
+  const handleDeleteNode = (nodeToDelete: TreeNode) => {
+    if (!nodeToDelete.parent) {
+      // Cannot delete the root node
+      console.warn("Cannot delete the root node");
+      return;
+    }
+  
+    const parent = nodeToDelete.parent;
+    // Remove the node from its parent's children array
+    parent.children = parent.children.filter((child) => child !== nodeToDelete);
+  
+    // remove node
+    setNodes((nodes) => nodes.filter((node) => node.id !== nodeToDelete.value.name));
+
+    // remove edges
+    setEdges((edges) => edges.filter((edge) => edge.source !== nodeToDelete.value.name && edge.target !== nodeToDelete.value.name));
+
+    // Update the tree state and graph
+    setTree({ ...tree });
+    updateGraph(tree);
+  };
 
   const handleGenerateCategories = (node: TreeNode) => {
     const parentPosition = node.position;
