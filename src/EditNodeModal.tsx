@@ -41,27 +41,32 @@ const EditNodeModal: React.FC<EditNodeModalProps> = ({
   };
 
   return (
-    <Modal style={{overlay: {zIndex: 100}}} isOpen={isOpen} onRequestClose={onRequestClose} contentLabel="Edit Node">
+    <Modal style={{ overlay: { zIndex: 100 } }} isOpen={isOpen} onRequestClose={onRequestClose} contentLabel="Edit Node">
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <h2>Edit Node</h2>
-      <label>
+      <label style={{ marginBottom: '10px' }}>
         Name:
-        <input value={name} onChange={(e) => setName(e.target.value)} />
+        <input style={{ width: '100%' }} value={name} onChange={(e) => setName(e.target.value)} />
       </label>
-      <label>
+      <label style={{ marginBottom: '10px' }}>
         Description:
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea style={{ width: '100%' }} value={description} onChange={(e) => setDescription(e.target.value)} />
       </label>
-      <label>
+      <label style={{ marginBottom: '10px', flex: '1' }}>
         Items (JSON format):
         <textarea
-          value={itemsJson}
-          onChange={(e) => setItemsJson(e.target.value)}
-          rows={10}
+        style={{ width: '100%', height: '100%' }}
+        value={itemsJson}
+        onChange={(e) => setItemsJson(e.target.value)}
+        rows={10}
         />
       </label>
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      <button onClick={handleSave}>Save</button>
-      <button onClick={onRequestClose}>Cancel</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <button onClick={handleSave}>Save</button>
+        <button onClick={onRequestClose}>Cancel</button>
+      </div>
+      </div>
     </Modal>
   );
 };

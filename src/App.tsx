@@ -18,13 +18,6 @@ import { TreeNode, Category, Item } from './models';
 import NodeComponent from './NodeComponent';
 import dagre from 'dagre';
 
-const sampleItems: Item[] = [
-  { id: 'item1', name: 'Item 1' },
-  { id: 'item2', name: 'Item 2' },
-  { id: 'item3', name: 'Item 3' },
-  // Add more items as needed
-];
-
 const nodeWidth = 150;
 const nodeHeight = 100;
 
@@ -57,11 +50,19 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[]) => {
   return { nodes: layoutedNodes, edges };
 };
 
+const sampleItems: Item[] = [
+  { id: 'item1', name: 'Item 1' },
+  { id: 'item2', name: 'Item 2' },
+  { id: 'item3', name: 'Item 3' },
+  // Add more items as needed
+];
+
 const initialTreeNode: TreeNode = {
   value: { name: 'Root', description: 'Root Category' },
   children: [],
   parent: undefined,
   items: sampleItems,
+  position: { x: 250, y: 5 }, // Set initial position
 };
 
 const App: React.FC = () => {
@@ -73,12 +74,12 @@ const App: React.FC = () => {
   const updateGraph = (treeNode: TreeNode) => {
     const newNodes: Node[] = [];
     const newEdges: Edge[] = [];
-
-    const traverse = (node: TreeNode, position = { x: 0, y: 0 }) => {
+  
+    const traverse = (node: TreeNode) => {
       newNodes.push({
         id: node.value.name,
         type: 'customNode',
-        position,
+        position: node.position, // Use position from TreeNode
         data: {
           category: node.value,
           items: node.items,
@@ -86,24 +87,19 @@ const App: React.FC = () => {
           onClassifyItems: () => handleClassifyItems(node),
         },
       });
-
-      node.children.forEach((child, index) => {
-        const childPosition = {
-          x: position.x + index * 200 - (node.children.length - 1) * 100,
-          y: position.y + 150,
-        };
-
+  
+      node.children.forEach((child) => {
         newEdges.push({
           id: `${node.value.name}-${child.value.name}`,
           source: node.value.name,
           target: child.value.name,
           animated: true,
         });
-
-        traverse(child, childPosition);
+  
+        traverse(child);
       });
     };
-
+  
     traverse(treeNode);
     setNodes(newNodes);
     setEdges(newEdges);
@@ -115,6 +111,16 @@ const App: React.FC = () => {
   }, [tree]);
 
   const handleGenerateCategories = (node: TreeNode) => {
+    const parentPosition = node.position;
+    const offsetY = 300;
+    const offsetX = 200;
+  
+    // Positioning new children
+    const positions = [
+      { x: parentPosition.x - offsetX, y: parentPosition.y + offsetY },
+      { x: parentPosition.x + offsetX, y: parentPosition.y + offsetY },
+    ];
+  
     // Example: Generate two child categories
     const child1: TreeNode = {
       value: {
@@ -124,8 +130,9 @@ const App: React.FC = () => {
       children: [],
       parent: node,
       items: [],
+      position: positions[0], // Set position
     };
-
+  
     const child2: TreeNode = {
       value: {
         name: `${node.value.name} Child 2`,
@@ -134,8 +141,9 @@ const App: React.FC = () => {
       children: [],
       parent: node,
       items: [],
+      position: positions[1], // Set position
     };
-
+  
     node.children.push(child1, child2);
     setTree({ ...tree }); // Trigger re-render
     updateGraph(tree);
@@ -157,9 +165,47 @@ const App: React.FC = () => {
     updateGraph(tree);
   };
 
-  const onNodesChange: OnNodesChange = (changes: NodeChange[]) => {
-    // Handle node changes if needed
+  const onNodesChange: OnNodesChange = (changes) => {
+    let treeUpdated = false;
+  
+    changes.forEach((change) => {
+      if (change.type === 'position' && change.id && change.position) {
+        const nodeId = change.id;
+        const newPosition = change.position;
+  
+        // Update the position in the tree
+        const updated = updateNodePosition(tree, nodeId, newPosition);
+        if (updated) {
+          treeUpdated = true;
+        }
+      }
+    });
+  
+    if (treeUpdated) {
+      setTree({ ...tree }); // Trigger re-render if the tree was updated
+      updateGraph(tree);
+    }
   };
+
+  // Helper function to update the node position in the tree
+const updateNodePosition = (
+  node: TreeNode,
+  nodeId: string,
+  position: { x: number; y: number }
+): boolean => {
+  if (node.value.name === nodeId) {
+    node.position = position;
+    return true;
+  }
+
+  for (const child of node.children) {
+    if (updateNodePosition(child, nodeId, position)) {
+      return true;
+    }
+  }
+
+  return false;
+};
 
   const onEdgesChange: OnEdgesChange = (changes) => {
     // Handle edge changes if needed
@@ -182,6 +228,8 @@ const App: React.FC = () => {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           fitView
+          nodesDraggable={true}
+          nodesConnectable={true}
         >
           <MiniMap />
           <Controls />

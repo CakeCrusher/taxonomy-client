@@ -25,4 +25,5 @@ export interface TreeNode {
   children: TreeNode[];
   parent?: TreeNode;
   items: Item[];
+  position: { x: number; y: number }; // Add this line
 }
