@@ -33,6 +33,7 @@ const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
     if (onSaveNode) {
       onSaveNode(updatedCategory, updatedItems);
     }
+    setModalOpen(false);
   };
 
   return (

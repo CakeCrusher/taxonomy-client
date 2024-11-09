@@ -1,46 +1,141 @@
-# Getting Started with Create React App
+# **Client README**
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+# Taxonomy Generator Client
 
-## Available Scripts
+A React application providing a user-friendly interface for generating and managing taxonomies using AI.
 
-In the project directory, you can run:
+## Overview
 
-### `npm start`
+This client application allows users to interact with the Taxonomy Synthesis API to generate categories and classify items. It provides a graphical interface using React Flow to visualize and manipulate the taxonomy tree.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+## Directory Structure
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+```
+.
+├── README.md        
+├── package-lock.json
+├── package.json     
+├── public
+│   ├── favicon.ico
+│   ├── index.html
+│   ├── logo192.png
+│   ├── logo512.png
+│   ├── manifest.json
+│   └── robots.txt
+├── src
+│   ├── App.css
+│   ├── App.test.tsx
+│   ├── App.tsx
+│   ├── EditNodeModal.tsx
+│   ├── NodeComponent.tsx
+│   ├── index.css
+│   ├── index.tsx
+│   ├── logo.svg
+│   ├── models.ts
+│   ├── react-app-env.d.ts
+│   ├── reportWebVitals.ts
+│   └── setupTests.ts
+└── tsconfig.json
+```
 
-### `npm test`
+## Requirements
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+- Node.js (version 14 or higher)
+- An OpenAI API key
+- The Taxonomy Synthesis API backend running locally or accessible via network
 
-### `npm run build`
+## Quickstart
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 1. Clone the Repository
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+git clone <repository-url>
+cd <repository-directory>
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### 2. Install Dependencies
 
-### `npm run eject`
+Install the required npm packages.
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+```bash
+npm install
+```
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### 3. Configure the Application
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+Ensure that the backend API is running and accessible at `http://localhost:4000`. If it's running on a different host or port, update the API endpoints in `App.tsx`.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+### 4. Run the Application
 
-## Learn More
+Start the React development server.
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```bash
+npm start
+```
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+This will run the application on `http://localhost:3000`.
+
+### 5. Use the Application
+
+- **Enter OpenAI API Key:** In the input field at the top left, enter your OpenAI API key.
+- **Set Number of Categories:** Specify how many subcategories to generate when creating new categories.
+- **Interact with the Tree:**
+  - **Generate Categories:** Click the "Generate Categories" button on a node to create subcategories using AI.
+  - **Classify Items:** Click the "Classify Items" button to classify the items of a node into its subcategories using AI.
+  - **Edit Nodes:** Edit the category name and description directly within the node.
+  - **Delete Nodes:** Click the "Delete Node" button to remove a node from the tree.
+  - **Drag Nodes:** Drag nodes around the canvas to rearrange the layout.
+
+### 6. Sample Data
+
+The application starts with some sample items. You can modify the `sampleItems` array in `App.tsx` to use your own data.
+
+```typescript
+const sampleItems: Item[] = [
+  { id: 'item1', name: 'Item 1' },
+  { id: 'item2', name: 'Item 2' },
+  { id: 'item3', name: 'Item 3' },
+  // Add more items as needed
+];
+```
+
+## Dependencies
+
+Ensure the following dependencies are included in your `package.json`:
+
+- `react`
+- `react-dom`
+- `react-scripts`
+- `typescript`
+- `react-flow-renderer`
+- `axios`
+- `dagre`
+
+## Project Structure
+
+- **App.tsx:** Main application file that handles state management and API interactions.
+- **NodeComponent.tsx:** Custom node component representing each category node in the tree.
+- **models.ts:** TypeScript interfaces representing data models.
+- **EditNodeModal.tsx:** Component for editing node details (if implemented).
+- **public/:** Contains the HTML template and public assets.
+- **src/:** Contains all the source code for the application.
+
+## Customization
+
+- **Styles:** Customize the appearance by modifying CSS files or inline styles.
+- **Components:** Extend or modify components to add new features or change behavior.
+- **State Management:** For larger applications, consider integrating a state management library like Redux.
+
+## Notes
+
+- **OpenAI API Key:** The application requires your OpenAI API key to function. Ensure you have a valid key and understand any associated costs.
+- **API Endpoint Configuration:** If your backend API is hosted elsewhere, update the API URLs in `App.tsx`.
+- **Error Handling:** Basic error handling is included. Enhance it as needed for production use.
+
+## Contact
+
+For any questions or issues, please contact the project maintainer.
+
+---
+
+**Happy coding! If you have any questions or need further assistance, feel free to reach out.**
