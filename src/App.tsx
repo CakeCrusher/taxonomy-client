@@ -9,7 +9,7 @@ const App: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/session/:sessionId" element={<Session />} />
+      <Route path="session/:sessionId" element={<Session />} />
     </Routes>
   );
 };

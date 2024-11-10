@@ -11,7 +11,7 @@ const Home: React.FC = () => {
     try {
       const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/initialize_session`);
       const sessionId = response.data.id;
-      navigate(`/session/${sessionId}`);
+      navigate(`session/${sessionId}`);
     } catch (error) {
       console.error('Error initializing session:', error);
       alert('Failed to start session. Please check the console for details.');
