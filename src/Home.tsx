@@ -9,7 +9,7 @@ const Home: React.FC = () => {
 
   const handleStartSession = async () => {
     try {
-      const response = await axios.post('http://localhost:4000/initialize_session');
+      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/initialize_session`);
       const sessionId = response.data.id;
       navigate(`/session/${sessionId}`);
     } catch (error) {
@@ -20,7 +20,7 @@ const Home: React.FC = () => {
 
   return (
     <div style={{ textAlign: 'center', marginTop: '50px' }}>
-      <h1>Welcome to the Taxonomy App</h1>
+      <h1>Welcome to the Taxonomy Client</h1>
       <button onClick={handleStartSession} style={{ padding: '10px 20px', fontSize: '16px' }}>
         Start Session
       </button>

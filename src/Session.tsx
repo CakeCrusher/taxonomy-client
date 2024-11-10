@@ -62,7 +62,7 @@ const App: React.FC = () => {
   React.useEffect(() => {
     const fetchSessionData = async () => {
       try {
-        const response = await axios.get(`http://localhost:4000/session/${sessionId}`);
+        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/session/${sessionId}`);
         const sessionData = response.data;
         // Transform session data into tree
         const rootNode = transformSessionData(sessionData);
@@ -136,7 +136,7 @@ const App: React.FC = () => {
   
     try {
       // Update the category in the database
-      axios.post("http://localhost:4000/update_category", {
+      axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
         session_id: sessionId,
         category_id: node.value.id,
         category: {
@@ -146,7 +146,7 @@ const App: React.FC = () => {
       });
   
       // Update items in the database
-      axios.post("http://localhost:4000/update_category_items", {
+      axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category_items`, {
         session_id: sessionId,
         items: updatedItems,
         category_id: node.value.id,
@@ -178,7 +178,7 @@ const App: React.FC = () => {
   
     try {
       // Delete the category from the database
-      await axios.post("http://localhost:4000/delete_category", {
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/delete_category`, {
         session_id: sessionId,
         category_id: nodeToDelete.value.id,
       });
@@ -222,7 +222,7 @@ const App: React.FC = () => {
     try {
       // Generate subcategories using AI
       const response = await axios.post(
-        "http://localhost:4000/generate_classes",
+        `${process.env.REACT_APP_API_BASE_URL}/generate_classes`,
         {
           items: node.items,
           category: node.value,
@@ -237,7 +237,7 @@ const App: React.FC = () => {
   
       // Create categories in the database
       const createCategoryPromises = generatedCategories.map((category) =>
-        axios.post("http://localhost:4000/create_category", {
+        axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_category`, {
           session_id: sessionId,
           category: category,
           is_child_of: node.value.id, // Parent category ID
@@ -292,7 +292,7 @@ const App: React.FC = () => {
   
       // Make API call to classify items
       const response = await axios.post(
-        "http://localhost:4000/classify_items",
+        `${process.env.REACT_APP_API_BASE_URL}/classify_items`,
         {
           categories: childCategories,
           items: node.items,
@@ -343,7 +343,7 @@ const App: React.FC = () => {
       // Prepare update requests for each category
       const updatePromises = Object.entries(itemsByCategoryId).map(
         ([categoryId, items]) =>
-          axios.post("http://localhost:4000/update_items", {
+          axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_items`, {
             session_id: sessionId,
             items: items,
             is_contained_inside: categoryId,
