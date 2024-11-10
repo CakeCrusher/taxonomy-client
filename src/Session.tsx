@@ -281,20 +281,15 @@ const App: React.FC = () => {
       console.warn('Tree is not initialized');
       return;
     }
-    // if (!openaiApiKey) {
-    //   alert("Please enter your OpenAI API Key");
-    //   return;
-    // }
-
-    if (node.children.length === 0 || node.items.length === 0) {
+    if (!node.children.length || !node.items.length) {
       alert("No children or items to classify.");
       return;
     }
-
+  
     try {
       // Collect child categories
       const childCategories = node.children.map((child) => child.value);
-
+  
       // Make API call to classify items
       const response = await axios.post(
         "http://localhost:4000/classify_items",
@@ -304,27 +299,59 @@ const App: React.FC = () => {
           api_key: openaiApiKey,
         }
       );
-
-      const classifiedItems: ClassifiedItem[] = response.data.classified_items;
-
+  
+      const classifiedItems: { item: Item; category: { name: string; description: string } }[] = response.data.classified_items;
+      console.log("Classified Items:", classifiedItems);
+  
+      // Store original items before clearing
+      const originalItems = [...node.items];
+  
       // Clear items from current node
       node.items = [];
-
+  
       // Clear items from child nodes
       node.children.forEach((child) => {
         child.items = [];
       });
-
+  
+      // Create a map of child nodes by category name for quick lookup
+      const childNodeMap = new Map<string, TreeNode>();
+      node.children.forEach((child) => {
+        childNodeMap.set(child.value.name, child);
+      });
+  
       // Assign items to the appropriate child nodes
       classifiedItems.forEach(({ item, category }) => {
-        const childNode = node.children.find(
-          (child) => child.value.name === category.name
-        );
+        const childNode = childNodeMap.get(category.name);
         if (childNode) {
           childNode.items.push(item);
+        } else {
+          console.warn(`No child node found for category name: ${category.name}`);
         }
       });
-
+  
+      // Group items by category ID
+      const itemsByCategoryId: { [key: string]: Item[] } = {};
+  
+      node.children.forEach((childNode) => {
+        const categoryId = childNode.value.id;
+        if (childNode.items.length > 0) {
+          itemsByCategoryId[categoryId] = childNode.items;
+        }
+      });
+  
+      // Prepare update requests for each category
+      const updatePromises = Object.entries(itemsByCategoryId).map(
+        ([categoryId, items]) =>
+          axios.post("http://localhost:4000/update_items", {
+            session_id: sessionId,
+            items: items,
+            is_contained_inside: categoryId,
+          })
+      );
+  
+      await Promise.all(updatePromises);
+  
       // Update the tree and graph
       setTree({ ...tree });
       updateGraph(tree);
