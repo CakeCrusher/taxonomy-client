@@ -9,12 +9,11 @@ import ReactFlow, {
   Edge,
   MiniMap,
   Node,
-  NodeChange,
   Controls,
   OnNodesChange,
   OnEdgesChange,
 } from "react-flow-renderer";
-import { TreeNode, Category, Item, ClassifiedItem } from "./models";
+import { TreeNode, Category, Item } from "./models";
 import NodeComponent from "./NodeComponent";
 import axios from "axios";
 import { useParams } from "react-router-dom";
