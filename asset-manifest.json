@@ -1,15 +1,15 @@
 {
   "files": {
     "main.css": "/taxonomy-client/static/css/main.e6c13ad2.css",
-    "main.js": "/taxonomy-client/static/js/main.6b18ed0b.js",
+    "main.js": "/taxonomy-client/static/js/main.616749fd.js",
     "static/js/453.a1e27609.chunk.js": "/taxonomy-client/static/js/453.a1e27609.chunk.js",
     "index.html": "/taxonomy-client/index.html",
     "main.e6c13ad2.css.map": "/taxonomy-client/static/css/main.e6c13ad2.css.map",
-    "main.6b18ed0b.js.map": "/taxonomy-client/static/js/main.6b18ed0b.js.map",
+    "main.616749fd.js.map": "/taxonomy-client/static/js/main.616749fd.js.map",
     "453.a1e27609.chunk.js.map": "/taxonomy-client/static/js/453.a1e27609.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.e6c13ad2.css",
-    "static/js/main.6b18ed0b.js"
+    "static/js/main.616749fd.js"
   ]
 }
