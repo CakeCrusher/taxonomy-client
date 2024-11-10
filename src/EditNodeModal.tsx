@@ -32,7 +32,7 @@ const EditNodeModal: React.FC<EditNodeModalProps> = ({
       if (!Array.isArray(parsedItems)) {
         throw new Error('Items must be an array');
       }
-      const updatedCategory: Category = { name, description };
+      const updatedCategory: Category = { id: category.id, name, description };
       onSave(updatedCategory, parsedItems);
       onRequestClose();
     } catch (e: any) {

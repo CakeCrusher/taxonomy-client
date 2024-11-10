@@ -43,17 +43,6 @@ const transformSessionData = (sessionData: any): TreeNode => {
     return node;
   };
 
-  // Handle empty tree case
-  if (!sessionData.tree || sessionData.tree.length === 0) {
-    return {
-      value: { name: 'Root', description: 'Root Category' },
-      children: [],
-      parent: undefined,
-      items: [],
-      position: { x: 250, y: 5 },
-    };
-  }
-
   const rootNode = buildTree(sessionData.tree[0]);
   return rootNode;
 };
@@ -97,7 +86,7 @@ const App: React.FC = () => {
 
     const traverse = (node: TreeNode) => {
       newNodes.push({
-        id: node.value.name,
+        id: node.value.id,
         type: "customNode",
         position: node.position,
         data: {
@@ -113,9 +102,9 @@ const App: React.FC = () => {
 
       node.children.forEach((child) => {
         newEdges.push({
-          id: `${node.value.name}-${child.value.name}`,
-          source: node.value.name,
-          target: child.value.name,
+          id: `${node.value.id}-${child.value.id}`,
+          source: node.value.id,
+          target: child.value.id,
           animated: true,
         });
 
@@ -135,7 +124,7 @@ const App: React.FC = () => {
     }
   }, [tree]);
 
-  const handleSaveNode = (
+  const handleSaveNode = async (
     node: TreeNode,
     updatedCategory: Category,
     updatedItems: Item[]
@@ -144,16 +133,39 @@ const App: React.FC = () => {
       console.warn('Tree is not initialized');
       return;
     }
-    // Update the node's category and items
-    node.value = updatedCategory;
-    node.items = updatedItems;
-
-    // Trigger re-render by updating the tree state
-    setTree({ ...tree });
-    updateGraph(tree);
+  
+    try {
+      // Update the category in the database
+      axios.post("http://localhost:4000/update_category", {
+        session_id: sessionId,
+        category_id: node.value.id,
+        category: {
+          name: updatedCategory.name,
+          description: updatedCategory.description,
+        },
+      });
+  
+      // Update items in the database
+      axios.post("http://localhost:4000/update_category_items", {
+        session_id: sessionId,
+        items: updatedItems,
+        category_id: node.value.id,
+      });
+  
+      // Update the node's category and items in the local state
+      node.value = { ...node.value, ...updatedCategory };
+      node.items = updatedItems;
+  
+      // Trigger re-render by updating the tree state
+      setTree({ ...tree });
+      updateGraph(tree);
+    } catch (error) {
+      console.error("Error updating category or items:", error);
+      alert("Failed to save changes. Please check the console for details.");
+    }
   };
 
-  const handleDeleteNode = (nodeToDelete: TreeNode) => {
+  const handleDeleteNode = async (nodeToDelete: TreeNode) => {
     if (!tree) {
       console.warn('Tree is not initialized');
       return;
@@ -163,28 +175,38 @@ const App: React.FC = () => {
       console.warn("Cannot delete the root node");
       return;
     }
-
-    const parent = nodeToDelete.parent;
-    // Remove the node from its parent's children array
-    parent.children = parent.children.filter((child) => child !== nodeToDelete);
-
-    // remove node
-    setNodes((nodes) =>
-      nodes.filter((node) => node.id !== nodeToDelete.value.name)
-    );
-
-    // remove edges
-    setEdges((edges) =>
-      edges.filter(
-        (edge) =>
-          edge.source !== nodeToDelete.value.name &&
-          edge.target !== nodeToDelete.value.name
-      )
-    );
-
-    // Update the tree state and graph
-    setTree({ ...tree });
-    updateGraph(tree);
+  
+    try {
+      // Delete the category from the database
+      await axios.post("http://localhost:4000/delete_category", {
+        session_id: sessionId,
+        category_id: nodeToDelete.value.id,
+      });
+  
+      const parent = nodeToDelete.parent;
+      // Remove the node from its parent's children array
+      parent.children = parent.children.filter((child) => child !== nodeToDelete);
+  
+      // Remove node and edges from the graph
+      setNodes((nodes) =>
+        nodes.filter((node) => node.id !== nodeToDelete.value.id)
+      );
+  
+      setEdges((edges) =>
+        edges.filter(
+          (edge) =>
+            edge.source !== nodeToDelete.value.id &&
+            edge.target !== nodeToDelete.value.id
+        )
+      );
+  
+      // Update the tree state and graph
+      setTree({ ...tree });
+      updateGraph(tree);
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      alert("Failed to delete category. Please check the console for details.");
+    }
   };
 
   const handleGenerateCategories = async (node: TreeNode) => {
@@ -192,13 +214,13 @@ const App: React.FC = () => {
       console.warn('Tree is not initialized');
       return;
     }
-    if (!openaiApiKey) {
-      alert("Please enter your OpenAI API Key");
-      return;
-    }
-
+    // if (!openaiApiKey) {
+    //   alert("Please enter your OpenAI API Key");
+    //   return;
+    // }
+  
     try {
-      // Make API call to generate subcategories
+      // Generate subcategories using AI
       const response = await axios.post(
         "http://localhost:4000/generate_classes",
         {
@@ -209,24 +231,40 @@ const App: React.FC = () => {
           api_key: openaiApiKey,
         }
       );
-
-      const newCategories: Category[] = response.data.categories;
-
+  
+      const generatedCategories: { name: string; description: string }[] =
+        response.data.categories;
+  
+      // Create categories in the database
+      const createCategoryPromises = generatedCategories.map((category) =>
+        axios.post("http://localhost:4000/create_category", {
+          session_id: sessionId,
+          category: category,
+          is_child_of: node.value.id, // Parent category ID
+        })
+      );
+  
+      const createCategoryResponses = await Promise.all(createCategoryPromises);
+  
+      const createdCategories: Category[] = createCategoryResponses.map(
+        (res) => res.data
+      );
+  
       // Create new child nodes with positions relative to the parent
-      const newChildren: TreeNode[] = newCategories.map((category, index) => ({
+      const newChildren: TreeNode[] = createdCategories.map((category, index) => ({
         value: category,
         children: [],
         parent: node,
         items: [],
         position: {
-          x: node.position.x + (index - (newCategories.length - 1) / 2) * 200,
+          x: node.position.x + (index - (createdCategories.length - 1) / 2) * 200,
           y: node.position.y + 150,
         },
       }));
-
+  
       // Add new children to the node
       node.children.push(...newChildren);
-
+  
       // Update the tree and graph
       setTree({ ...tree });
       updateGraph(tree);
@@ -243,10 +281,10 @@ const App: React.FC = () => {
       console.warn('Tree is not initialized');
       return;
     }
-    if (!openaiApiKey) {
-      alert("Please enter your OpenAI API Key");
-      return;
-    }
+    // if (!openaiApiKey) {
+    //   alert("Please enter your OpenAI API Key");
+    //   return;
+    // }
 
     if (node.children.length === 0 || node.items.length === 0) {
       alert("No children or items to classify.");
@@ -301,7 +339,7 @@ const App: React.FC = () => {
       console.warn('Tree is not initialized');
       return;
     }
-    
+
     let treeUpdated = false;
 
     changes.forEach((change) => {
@@ -329,7 +367,7 @@ const App: React.FC = () => {
     nodeId: string,
     position: { x: number; y: number }
   ): boolean => {
-    if (node.value.name === nodeId) {
+    if (node.value.id === nodeId) {
       node.position = position;
       return true;
     }
@@ -368,13 +406,21 @@ const App: React.FC = () => {
           flexDirection: "column",
         }}
       >
-        <input
+        {/* <input
           type="password"
           placeholder="Enter OpenAI API Key"
           style={{ padding: "5px", width: "150px" }}
           value={openaiApiKey}
           onChange={(e) => setOpenaiApiKey(e.target.value)}
-        />
+        /> */}
+        <a
+          href="https://chatgpt.com/g/g-uzCEPPgP5-taxonomysynthesis-formatter"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ marginBottom: "10px", color: "blue", textDecoration: "underline" }}
+        >
+          Open Taxonomy Synthesis Formatter
+        </a>
         <input
           type="number"
           placeholder="Enter number of categories"
