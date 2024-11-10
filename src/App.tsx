@@ -78,7 +78,8 @@ const App: React.FC = () => {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [openaiApiKey, setOpenaiApiKey] = useState('');
-  const [numCategories, setNumCategories] = useState(2);
+  const [numCategories, setNumCategories] = useState(0);
+  const [generationMethod, setGenerationMethod] = React.useState('');
 
   // Convert TreeNode to React Flow nodes and edges
   const updateGraph = (treeNode: TreeNode) => {
@@ -120,8 +121,9 @@ const App: React.FC = () => {
 
   // Initialize the graph
   React.useEffect(() => {
+    console.log('Generation Method:', generationMethod);
     updateGraph(tree);
-  }, [tree]);
+  }, [tree, openaiApiKey, numCategories, generationMethod]);
 
   const handleSaveNode = (
     node: TreeNode,
@@ -160,6 +162,7 @@ const App: React.FC = () => {
   };
 
   const handleGenerateCategories = async (node: TreeNode) => {
+    console.log('Generation categories for:', node);
     if (!openaiApiKey) {
       alert('Please enter your OpenAI API Key');
       return;
@@ -171,6 +174,7 @@ const App: React.FC = () => {
         items: node.items,
         category: node.value,
         num_categories: numCategories,
+        generation_method: generationMethod,
         api_key: openaiApiKey,
       });
   
@@ -318,6 +322,12 @@ const updateNodePosition = (
           style={{ padding: '5px', width: '150px' }}
           value={numCategories}
           onChange={(e) => setNumCategories(parseInt(e.target.value))}
+        />
+        <textarea
+          placeholder="Enter generation method"
+          style={{ padding: '5px', width: '150px', height: '50px' }}
+          value={generationMethod}
+          onChange={(e) => setGenerationMethod(e.target.value)}
         />
       </div>
       <div style={{ width: '100%', height: '100vh' }}>
