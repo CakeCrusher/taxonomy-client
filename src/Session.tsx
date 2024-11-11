@@ -124,7 +124,7 @@ const App: React.FC = () => {
     if (tree) {
       updateGraph(tree);
     }
-  }, [tree]);
+  }, [tree, numCategories, generationMethod]);
 
   const deepCloneTree = (node: TreeNode): TreeNode => {
     return {
