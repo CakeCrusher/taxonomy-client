@@ -17,6 +17,8 @@ import { TreeNode, Category, Item } from "./models";
 import NodeComponent from "./NodeComponent";
 import axios from "axios";
 import { useParams } from "react-router-dom";
+import { useAppDispatch } from './store/hooks';
+import { setLoading } from './store/loadingSlice';
 
 const transformSessionData = (sessionData: any): TreeNode => {
   const buildTree = (nodeData: any, level: number = 0, parentPosition: { x: number, y: number } = { x: 250, y: 5 }): TreeNode => {
@@ -56,7 +58,8 @@ const App: React.FC = () => {
   const [generationMethod, setGenerationMethod] = React.useState("");
 
   const { sessionId } = useParams<{ sessionId: string }>(); // Get sessionId from URL
-  const [loading, setLoading] = useState<boolean>(true); // Add loading state
+  const [pageLoading, setPageLoading] = useState<boolean>(true); // Add loading state
+  const dispatch = useAppDispatch()
 
   React.useEffect(() => {
     const fetchSessionData = async () => {
@@ -66,11 +69,11 @@ const App: React.FC = () => {
         // Transform session data into tree
         const rootNode = transformSessionData(sessionData);
         setTree(rootNode);
-        setLoading(false);
+        setPageLoading(false);
       } catch (error) {
         console.error('Error fetching session data:', error);
         alert('Failed to fetch session data. Please check the console for details.');
-        setLoading(false);
+        setPageLoading(false);
       }
     };
 
@@ -132,36 +135,41 @@ const App: React.FC = () => {
       console.warn('Tree is not initialized');
       return;
     }
-  
-    try {
-      // Update the category in the database
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
-        session_id: sessionId,
-        category_id: node.value.id,
-        category: {
-          name: updatedCategory.name,
-          description: updatedCategory.description,
-        },
-      });
-  
-      // Update items in the database
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category_items`, {
-        session_id: sessionId,
-        items: updatedItems,
-        category_id: node.value.id,
-      });
-  
-      // Update the node's category and items in the local state
-      node.value = { ...node.value, ...updatedCategory };
-      node.items = updatedItems;
-  
-      // Trigger re-render by updating the tree state
-      setTree({ ...tree });
-      updateGraph(tree);
-    } catch (error) {
-      console.error("Error updating category or items:", error);
-      alert("Failed to save changes. Please check the console for details.");
+    dispatch(setLoading(true));
+    // Update the category in the database
+    const saveNode = async () => {
+      try {
+        await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
+          session_id: sessionId,
+          category_id: node.value.id,
+          category: {
+            name: updatedCategory.name,
+            description: updatedCategory.description,
+          },
+        });
+    
+        // Update items in the database
+        await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category_items`, {
+          session_id: sessionId,
+          items: updatedItems,
+          category_id: node.value.id,
+        });
+      } catch (error) {
+        console.error("Error updating category or items:", error);
+        alert("Failed to save changes. Please check the console for details.");
+      } finally {
+        dispatch(setLoading(false));
+      }
     }
+    saveNode();
+
+    // Update the node's category and items in the local state
+    node.value = { ...node.value, ...updatedCategory };
+    node.items = updatedItems;
+
+    // Trigger re-render by updating the tree state
+    setTree({ ...tree });
+    updateGraph(tree);
   };
 
   const handleDeleteNode = async (nodeToDelete: TreeNode) => {
@@ -217,7 +225,7 @@ const App: React.FC = () => {
     //   alert("Please enter your OpenAI API Key");
     //   return;
     // }
-  
+    dispatch(setLoading(true));
     try {
       // Generate subcategories using AI
       const response = await axios.post(
@@ -272,6 +280,8 @@ const App: React.FC = () => {
       alert(
         "Failed to generate categories. Please check the console for details."
       );
+    } finally {
+      dispatch(setLoading(false));
     }
   };
 
@@ -285,6 +295,7 @@ const App: React.FC = () => {
       return;
     }
   
+    dispatch(setLoading(true));
     try {
       // Collect child categories
       const childCategories = node.children.map((child) => child.value);
@@ -357,6 +368,8 @@ const App: React.FC = () => {
     } catch (error) {
       console.error("Error classifying items:", error);
       alert("Failed to classify items. Please check the console for details.");
+    } finally {
+      dispatch(setLoading(false));
     }
   };
 
@@ -417,7 +430,7 @@ const App: React.FC = () => {
 
   const nodeTypes = { customNode: NodeComponent };
 
-  if (loading) {
+  if (pageLoading) {
     return <div>Loading...</div>;
   }
   return (

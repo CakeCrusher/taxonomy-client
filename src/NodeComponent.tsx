@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Handle, NodeProps, Position } from 'react-flow-renderer';
 import { Category, Item } from './models';
 import EditNodeModal from './EditNodeModal';
+import { useAppSelector }  from './store/hooks';
 
 interface CustomNodeData {
   category: Category;
@@ -24,6 +25,7 @@ const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
     onSaveNode,
   } = data;
   const [modalOpen, setModalOpen] = useState(false);
+  const loading = useAppSelector((state) => state.loading.isLoading);
 
   const handleNodeClick = () => {
     setModalOpen(true);
@@ -51,13 +53,13 @@ const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
       <strong>{category.name}</strong>
       <p>{category.description}</p>
       <p>Items: {items.length}</p>
-      <button onClick={(e) => { e.stopPropagation(); onGenerateCategories(); }}>
+      <button disabled={loading} onClick={(e) => { e.stopPropagation(); onGenerateCategories(); }}>
         Generate Categories
       </button>
-      <button onClick={(e) => { e.stopPropagation(); onClassifyItems(); }}>
+      <button disabled={loading} onClick={(e) => { e.stopPropagation(); onClassifyItems(); }}>
         Classify Items
       </button>
-      <button onClick={(e) => { e.stopPropagation(); onDeleteNode(); }}>
+      <button disabled={loading} onClick={(e) => { e.stopPropagation(); onDeleteNode(); }}>
         Delete Node
       </button>
       <Handle type="target" position={Position.Top} style={{ borderRadius: 0 }} />
