@@ -355,16 +355,9 @@ const App: React.FC = () => {
       const classifiedItems: { item: Item; category: { name: string; description: string } }[] = response.data.classified_items;
       console.log("Classified Items:", classifiedItems);
   
-      // Store original items before clearing
-      const originalItems = [...node.items];
-  
       // Clear items from current node
       node.items = [];
   
-      // Clear items from child nodes
-      node.children.forEach((child) => {
-        child.items = [];
-      });
   
       // Create a map of child nodes by category name for quick lookup
       const childNodeMap = new Map<string, TreeNode>();
