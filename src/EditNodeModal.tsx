@@ -9,7 +9,7 @@ interface EditNodeModalProps {
   onRequestClose: () => void;
   category: Category;
   items: Item[];
-  onSave: (updatedCategory: Category, updatedItems: Item[]) => void;
+  onSave: (updatedCategory: Category, updatedItems: Item[]) => Promise<void>;
 }
 
 Modal.setAppElement('#root'); // For accessibility
@@ -26,7 +26,7 @@ const EditNodeModal: React.FC<EditNodeModalProps> = ({
   const [itemsJson, setItemsJson] = useState(JSON.stringify(items, null, 2));
   const [error, setError] = useState('');
 
-  const handleSave = () => {
+  const handleSave = async () => {
     try {
       const parsedItems = JSON.parse(itemsJson);
       if (!Array.isArray(parsedItems)) {
@@ -40,8 +40,12 @@ const EditNodeModal: React.FC<EditNodeModalProps> = ({
     }
   };
 
+  const handleClose = () => {
+      onRequestClose();
+  }
+
   return (
-    <Modal style={{ overlay: { zIndex: 100 } }} isOpen={isOpen} onRequestClose={onRequestClose} contentLabel="Edit Node">
+    <Modal style={{ overlay: { zIndex: 100 } }} isOpen={isOpen} onRequestClose={handleClose} contentLabel="Edit Node">
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <h2>Edit Node</h2>
       <label style={{ marginBottom: '10px' }}>
@@ -64,7 +68,7 @@ const EditNodeModal: React.FC<EditNodeModalProps> = ({
       {error && <p style={{ color: 'red' }}>{error}</p>}
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <button onClick={handleSave}>Save</button>
-        <button onClick={onRequestClose}>Cancel</button>
+        <button onClick={handleClose}>Cancel</button>
       </div>
       </div>
     </Modal>

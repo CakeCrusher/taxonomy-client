@@ -135,7 +135,7 @@ const App: React.FC = () => {
   
     try {
       // Update the category in the database
-      axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
         session_id: sessionId,
         category_id: node.value.id,
         category: {
@@ -145,7 +145,7 @@ const App: React.FC = () => {
       });
   
       // Update items in the database
-      axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category_items`, {
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category_items`, {
         session_id: sessionId,
         items: updatedItems,
         category_id: node.value.id,

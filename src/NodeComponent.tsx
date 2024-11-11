@@ -11,7 +11,7 @@ interface CustomNodeData {
   onGenerateCategories: () => void;
   onClassifyItems: () => void;
   onDeleteNode: () => void;
-  onSaveNode?: (updatedCategory: Category, updatedItems: Item[]) => void;
+  onSaveNode?: (updatedCategory: Category, updatedItems: Item[]) => Promise<void>;
 }
 
 const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
@@ -29,9 +29,9 @@ const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
     setModalOpen(true);
   };
 
-  const handleSave = (updatedCategory: Category, updatedItems: Item[]) => {
+  const handleSave = async (updatedCategory: Category, updatedItems: Item[]) => {
     if (onSaveNode) {
-      onSaveNode(updatedCategory, updatedItems);
+      await onSaveNode(updatedCategory, updatedItems);
     }
   };
 
