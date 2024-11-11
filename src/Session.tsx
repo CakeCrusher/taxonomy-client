@@ -126,6 +126,46 @@ const App: React.FC = () => {
     }
   }, [tree]);
 
+  const deepCloneTree = (node: TreeNode): TreeNode => {
+    return {
+      ...node,
+      items: [...node.items],
+      value: { ...node.value },
+      position: { ...node.position },
+      // Exclude parent to avoid circular references or handle as needed
+      children: node.children.map((child) => deepCloneTree(child)),
+    };
+  }
+  
+  // Function to remove updatedItems from other nodes in the tree
+  const removeItemsFromOtherNodes = (
+    updatedItems: Item[],
+    currentNode: TreeNode,
+    tree: TreeNode
+  ): TreeNode => {
+    // Create a deep clone of the tree to avoid mutating the original tree
+    const clonedTree = deepCloneTree(tree);
+  
+    // Create a set of updated item IDs for efficient lookup
+    const updatedItemIds = new Set(updatedItems.map((item) => item.id));
+  
+    // Define a recursive function to traverse the tree and remove items
+    const traverseAndRemove = (node: TreeNode) => {
+      if (node.value.id !== currentNode.value.id) {
+        // Remove items from this node that are in updatedItemIds
+        node.items = node.items.filter((item) => !updatedItemIds.has(item.id));
+      }
+  
+      // Recursively traverse children
+      node.children.forEach((child) => traverseAndRemove(child));
+    };
+  
+    // Start traversal from the root of the cloned tree
+    traverseAndRemove(clonedTree);
+  
+    return clonedTree;
+  }
+  
   const handleSaveNode = async (
     node: TreeNode,
     updatedCategory: Category,
@@ -167,9 +207,11 @@ const App: React.FC = () => {
     node.value = { ...node.value, ...updatedCategory };
     node.items = updatedItems;
 
+    const newTree = removeItemsFromOtherNodes(updatedItems, node, tree);
+
     // Trigger re-render by updating the tree state
-    setTree({ ...tree });
-    updateGraph(tree);
+    setTree(newTree);
+    updateGraph(newTree);
   };
 
   const handleDeleteNode = async (nodeToDelete: TreeNode) => {
