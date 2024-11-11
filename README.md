@@ -1,7 +1,5 @@
-# **Client README**
-
 # Taxonomy Generator Client
-
+## Try It: https://cakecrusher.github.io/taxonomy-client/
 A React application providing a user-friendly interface for generating and managing taxonomies using AI.
 
 ## Overview
