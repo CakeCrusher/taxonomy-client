@@ -1,6 +1,6 @@
 // src/App.tsx
 
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import ReactFlow, {
   ReactFlowProvider,
   addEdge,
@@ -17,22 +17,32 @@ import { TreeNode, Category, Item } from "./models";
 import NodeComponent from "./NodeComponent";
 import axios from "axios";
 import { useParams } from "react-router-dom";
-import { useAppDispatch } from './store/hooks';
-import { setLoading } from './store/loadingSlice';
+import { useAppDispatch } from "./store/hooks";
+import { setLoading } from "./store/loadingSlice";
 
 const transformSessionData = (sessionData: any): TreeNode => {
-  const buildTree = (nodeData: any, level: number = 0, parentPosition: { x: number, y: number } = { x: 250, y: 5 }): TreeNode => {
-    const { value, children = [], items = [] } = nodeData;
+  const buildTree = (
+    nodeData: any,
+    level: number = 0,
+    parentPosition: { x: number; y: number } = { x: 0, y: 0 }
+  ): TreeNode => {
+    const {
+      value,
+      children = [],
+      items = [],
+      position = {
+        x: parentPosition.x,
+        y: parentPosition.y + level * 150,
+      },
+    } = nodeData;
+    console.log("position", position);
 
     const node: TreeNode = {
       value,
       children: [],
       parent: undefined, // Will set parent after
       items,
-      position: {
-        x: parentPosition.x + (children.length - 1) * 200,
-        y: parentPosition.y + level * 150,
-      },
+      position: position,
     };
 
     node.children = children.map((childData: any, index: number) => {
@@ -48,7 +58,6 @@ const transformSessionData = (sessionData: any): TreeNode => {
   return rootNode;
 };
 
-
 const App: React.FC = () => {
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -59,26 +68,68 @@ const App: React.FC = () => {
 
   const { sessionId } = useParams<{ sessionId: string }>(); // Get sessionId from URL
   const [pageLoading, setPageLoading] = useState<boolean>(true); // Add loading state
-  const dispatch = useAppDispatch()
+  const dispatch = useAppDispatch();
+
+  const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
+
+
+  const debouncedSavePositions = useCallback(() => {
+    if (timeoutIdRef.current) {
+      clearTimeout(timeoutIdRef.current);
+    }
+    timeoutIdRef.current = setTimeout(() => {
+      saveCategoryPositions(tree);
+      timeoutIdRef.current = null;
+    }, 1000); // 1-second delay
+  }, [tree]);
 
   React.useEffect(() => {
     const fetchSessionData = async () => {
       try {
-        const response = await axios.get(`${process.env.REACT_APP_API_BASE_URL}/session/${sessionId}`);
+        const response = await axios.get(
+          `${process.env.REACT_APP_API_BASE_URL}/session/${sessionId}`
+        );
         const sessionData = response.data;
         // Transform session data into tree
         const rootNode = transformSessionData(sessionData);
         setTree(rootNode);
         setPageLoading(false);
       } catch (error) {
-        console.error('Error fetching session data:', error);
-        alert('Failed to fetch session data. Please check the console for details.');
+        console.error("Error fetching session data:", error);
+        alert(
+          "Failed to fetch session data. Please check the console for details."
+        );
         setPageLoading(false);
       }
     };
 
     fetchSessionData();
   }, [sessionId]);
+
+  const saveCategoryPositions = async (treeToSave: TreeNode | null) => {
+    if (!treeToSave) {
+      console.warn("Tree is not initialized");
+      return;
+    }
+    const saveNodePosition = async (node: TreeNode) => {
+      console.log("tree", node, sessionId);
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
+        session_id: sessionId,
+        category_id: node.value.id,
+        position: {
+          x: Math.round(node.position.x),
+          y: Math.round(node.position.y),
+        },
+      });
+
+      const saveChildPositions = node.children.map(saveNodePosition);
+      await Promise.all(saveChildPositions);
+    };
+
+    await saveNodePosition(treeToSave);
+
+    console.log("Category positions saved");
+  };
 
   // Convert TreeNode to React Flow nodes and edges
   const updateGraph = (treeNode: TreeNode) => {
@@ -135,8 +186,8 @@ const App: React.FC = () => {
       // Exclude parent to avoid circular references or handle as needed
       children: node.children.map((child) => deepCloneTree(child)),
     };
-  }
-  
+  };
+
   // Function to remove updatedItems from other nodes in the tree
   const removeItemsFromOtherNodes = (
     updatedItems: Item[],
@@ -145,62 +196,68 @@ const App: React.FC = () => {
   ): TreeNode => {
     // Create a deep clone of the tree to avoid mutating the original tree
     const clonedTree = deepCloneTree(tree);
-  
+
     // Create a set of updated item IDs for efficient lookup
     const updatedItemIds = new Set(updatedItems.map((item) => item.id));
-  
+
     // Define a recursive function to traverse the tree and remove items
     const traverseAndRemove = (node: TreeNode) => {
       if (node.value.id !== currentNode.value.id) {
         // Remove items from this node that are in updatedItemIds
         node.items = node.items.filter((item) => !updatedItemIds.has(item.id));
       }
-  
+
       // Recursively traverse children
       node.children.forEach((child) => traverseAndRemove(child));
     };
-  
+
     // Start traversal from the root of the cloned tree
     traverseAndRemove(clonedTree);
-  
+
     return clonedTree;
-  }
-  
+  };
+
   const handleSaveNode = async (
     node: TreeNode,
     updatedCategory: Category,
     updatedItems: Item[]
   ) => {
     if (!tree) {
-      console.warn('Tree is not initialized');
+      console.warn("Tree is not initialized");
       return;
     }
     dispatch(setLoading(true));
     // Update the category in the database
     const saveNode = async () => {
       try {
-        await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
-          session_id: sessionId,
-          category_id: node.value.id,
-          category: {
-            name: updatedCategory.name,
-            description: updatedCategory.description,
-          },
-        });
-    
+        await axios.post(
+          `${process.env.REACT_APP_API_BASE_URL}/update_category`,
+          {
+            session_id: sessionId,
+            category_id: node.value.id,
+            category: {
+              name: updatedCategory.name,
+              description: updatedCategory.description,
+            },
+          }
+        );
+
         // Update items in the database
-        await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category_items`, {
-          session_id: sessionId,
-          items: updatedItems,
-          category_id: node.value.id,
-        });
+        await axios.post(
+          `${process.env.REACT_APP_API_BASE_URL}/update_category_items`,
+          {
+            session_id: sessionId,
+            items: updatedItems,
+            category_id: node.value.id,
+          }
+        );
       } catch (error) {
         console.error("Error updating category or items:", error);
         alert("Failed to save changes. Please check the console for details.");
       } finally {
         dispatch(setLoading(false));
       }
-    }
+    };
     saveNode();
 
     // Update the node's category and items in the local state
@@ -216,7 +273,7 @@ const App: React.FC = () => {
 
   const handleDeleteNode = async (nodeToDelete: TreeNode) => {
     if (!tree) {
-      console.warn('Tree is not initialized');
+      console.warn("Tree is not initialized");
       return;
     }
     if (!nodeToDelete.parent) {
@@ -224,23 +281,28 @@ const App: React.FC = () => {
       console.warn("Cannot delete the root node");
       return;
     }
-  
+
     try {
       // Delete the category from the database
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/delete_category`, {
-        session_id: sessionId,
-        category_id: nodeToDelete.value.id,
-      });
-  
+      await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/delete_category`,
+        {
+          session_id: sessionId,
+          category_id: nodeToDelete.value.id,
+        }
+      );
+
       const parent = nodeToDelete.parent;
       // Remove the node from its parent's children array
-      parent.children = parent.children.filter((child) => child !== nodeToDelete);
-  
+      parent.children = parent.children.filter(
+        (child) => child !== nodeToDelete
+      );
+
       // Remove node and edges from the graph
       setNodes((nodes) =>
         nodes.filter((node) => node.id !== nodeToDelete.value.id)
       );
-  
+
       setEdges((edges) =>
         edges.filter(
           (edge) =>
@@ -248,7 +310,7 @@ const App: React.FC = () => {
             edge.target !== nodeToDelete.value.id
         )
       );
-  
+
       // Update the tree state and graph
       setTree({ ...tree });
       updateGraph(tree);
@@ -260,7 +322,7 @@ const App: React.FC = () => {
 
   const handleGenerateCategories = async (node: TreeNode) => {
     if (!tree) {
-      console.warn('Tree is not initialized');
+      console.warn("Tree is not initialized");
       return;
     }
     // if (!openaiApiKey) {
@@ -280,40 +342,48 @@ const App: React.FC = () => {
           api_key: openaiApiKey,
         }
       );
-  
+
       const generatedCategories: { name: string; description: string }[] =
         response.data.categories;
-  
+
       // Create categories in the database
-      const createCategoryPromises = generatedCategories.map((category) =>
+      const createCategoryPromises = generatedCategories.map((category, index) =>
         axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_category`, {
           session_id: sessionId,
           category: category,
+          position: {
+            x: node.position.x + (index - (generatedCategories.length - 1) / 2) * 200,
+            y: node.position.y + 150,
+          },
           is_child_of: node.value.id, // Parent category ID
         })
       );
-  
+
       const createCategoryResponses = await Promise.all(createCategoryPromises);
-  
+
       const createdCategories: Category[] = createCategoryResponses.map(
         (res) => res.data
       );
-  
+
       // Create new child nodes with positions relative to the parent
-      const newChildren: TreeNode[] = createdCategories.map((category, index) => ({
-        value: category,
-        children: [],
-        parent: node,
-        items: [],
-        position: {
-          x: node.position.x + (index - (createdCategories.length - 1) / 2) * 200,
-          y: node.position.y + 150,
-        },
-      }));
-  
+      const newChildren: TreeNode[] = createdCategories.map(
+        (category, index) => ({
+          value: category,
+          children: [],
+          parent: node,
+          items: [],
+          position: {
+            x:
+              node.position.x +
+              (index - (createdCategories.length - 1) / 2) * 200,
+            y: node.position.y + 150,
+          },
+        })
+      );
+
       // Add new children to the node
       node.children.push(...newChildren);
-  
+
       // Update the tree and graph
       setTree({ ...tree });
       updateGraph(tree);
@@ -329,19 +399,19 @@ const App: React.FC = () => {
 
   const handleClassifyItems = async (node: TreeNode) => {
     if (!tree) {
-      console.warn('Tree is not initialized');
+      console.warn("Tree is not initialized");
       return;
     }
     if (!node.children.length || !node.items.length) {
       alert("No children or items to classify.");
       return;
     }
-  
+
     dispatch(setLoading(true));
     try {
       // Collect child categories
       const childCategories = node.children.map((child) => child.value);
-  
+
       // Make API call to classify items
       const response = await axios.post(
         `${process.env.REACT_APP_API_BASE_URL}/classify_items`,
@@ -351,40 +421,44 @@ const App: React.FC = () => {
           api_key: openaiApiKey,
         }
       );
-  
-      const classifiedItems: { item: Item; category: { name: string; description: string } }[] = response.data.classified_items;
+
+      const classifiedItems: {
+        item: Item;
+        category: { name: string; description: string };
+      }[] = response.data.classified_items;
       console.log("Classified Items:", classifiedItems);
-  
+
       // Clear items from current node
       node.items = [];
-  
-  
+
       // Create a map of child nodes by category name for quick lookup
       const childNodeMap = new Map<string, TreeNode>();
       node.children.forEach((child) => {
         childNodeMap.set(child.value.name, child);
       });
-  
+
       // Assign items to the appropriate child nodes
       classifiedItems.forEach(({ item, category }) => {
         const childNode = childNodeMap.get(category.name);
         if (childNode) {
           childNode.items.push(item);
         } else {
-          console.warn(`No child node found for category name: ${category.name}`);
+          console.warn(
+            `No child node found for category name: ${category.name}`
+          );
         }
       });
-  
+
       // Group items by category ID
       const itemsByCategoryId: { [key: string]: Item[] } = {};
-  
+
       node.children.forEach((childNode) => {
         const categoryId = childNode.value.id;
         if (childNode.items.length > 0) {
           itemsByCategoryId[categoryId] = childNode.items;
         }
       });
-  
+
       // Prepare update requests for each category
       const updatePromises = Object.entries(itemsByCategoryId).map(
         ([categoryId, items]) =>
@@ -394,9 +468,9 @@ const App: React.FC = () => {
             is_contained_inside: categoryId,
           })
       );
-  
+
       await Promise.all(updatePromises);
-  
+
       // Update the tree and graph
       setTree({ ...tree });
       updateGraph(tree);
@@ -410,7 +484,7 @@ const App: React.FC = () => {
 
   const onNodesChange: OnNodesChange = (changes) => {
     if (!tree) {
-      console.warn('Tree is not initialized');
+      console.warn("Tree is not initialized");
       return;
     }
 
@@ -432,8 +506,11 @@ const App: React.FC = () => {
     if (treeUpdated) {
       setTree({ ...tree }); // Trigger re-render if the tree was updated
       updateGraph(tree);
+
+      debouncedSavePositions();
     }
   };
+
 
   // Helper function to update the node position in the tree
   const updateNodePosition = (
@@ -491,7 +568,11 @@ const App: React.FC = () => {
           href="https://chatgpt.com/g/g-uzCEPPgP5-taxonomysynthesis-formatter"
           target="_blank"
           rel="noopener noreferrer"
-          style={{ marginBottom: "10px", color: "blue", textDecoration: "underline" }}
+          style={{
+            marginBottom: "10px",
+            color: "blue",
+            textDecoration: "underline",
+          }}
         >
           Open Taxonomy Synthesis Formatter
         </a>
