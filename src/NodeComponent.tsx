@@ -1,10 +1,10 @@
 // src/NodeComponent.tsx
 
-import React, { useState } from 'react';
-import { Handle, NodeProps, Position } from 'react-flow-renderer';
-import { Category, Item } from './models';
-import EditNodeModal from './EditNodeModal';
-import { useAppSelector }  from './store/hooks';
+import React, { useState } from "react";
+import { Handle, NodeProps, Position } from "react-flow-renderer";
+import { Category, Item } from "./models";
+import EditNodeModal from "./EditNodeModal";
+import { useAppSelector } from "./store/hooks";
 
 interface CustomNodeData {
   category: Category;
@@ -12,7 +12,10 @@ interface CustomNodeData {
   onGenerateCategories: () => void;
   onClassifyItems: () => void;
   onDeleteNode: () => void;
-  onSaveNode?: (updatedCategory: Category, updatedItems: Item[]) => Promise<void>;
+  onSaveNode?: (
+    updatedCategory: Category,
+    updatedItems: Item[]
+  ) => Promise<void>;
 }
 
 const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
@@ -31,7 +34,10 @@ const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
     setModalOpen(true);
   };
 
-  const handleSave = async (updatedCategory: Category, updatedItems: Item[]) => {
+  const handleSave = async (
+    updatedCategory: Category,
+    updatedItems: Item[]
+  ) => {
     if (onSaveNode) {
       await onSaveNode(updatedCategory, updatedItems);
     }
@@ -41,29 +47,55 @@ const NodeComponent: React.FC<NodeProps<CustomNodeData>> = ({ data }) => {
     <div
       style={{
         padding: 10,
-        border: '1px solid #777',
+        border: "1px solid #777",
         borderRadius: 5,
         width: 150,
-        backgroundColor: '#fff',
-        textAlign: 'center',
-        cursor: 'pointer',
+        backgroundColor: "#fff",
+        textAlign: "center",
+        cursor: "pointer",
       }}
       onDoubleClick={handleNodeClick}
     >
       <strong>{category.name}</strong>
       <p>{category.description}</p>
       <p>Items: {items.length}</p>
-      <button disabled={loading} onClick={(e) => { e.stopPropagation(); onGenerateCategories(); }}>
+      <button
+        disabled={loading}
+        onClick={(e) => {
+          e.stopPropagation();
+          onGenerateCategories();
+        }}
+      >
         Generate Categories
       </button>
-      <button disabled={loading} onClick={(e) => { e.stopPropagation(); onClassifyItems(); }}>
+      <button
+        disabled={loading}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClassifyItems();
+        }}
+      >
         Classify Items
       </button>
-      <button disabled={loading} onClick={(e) => { e.stopPropagation(); onDeleteNode(); }}>
+      <button
+        disabled={loading}
+        onClick={(e) => {
+          e.stopPropagation();
+          onDeleteNode();
+        }}
+      >
         Delete Node
       </button>
-      <Handle type="target" position={Position.Top} style={{ borderRadius: 0 }} />
-      <Handle type="source" position={Position.Bottom} style={{ borderRadius: 0 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ borderRadius: 0 }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ borderRadius: 0 }}
+      />
       <EditNodeModal
         isOpen={modalOpen}
         onRequestClose={() => setModalOpen(false)}

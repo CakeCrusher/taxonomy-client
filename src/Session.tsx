@@ -16,7 +16,7 @@ import ReactFlow, {
 import { TreeNode, Category, Item } from "./models";
 import NodeComponent from "./NodeComponent";
 import axios from "axios";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useAppDispatch } from "./store/hooks";
 import { setLoading } from "./store/loadingSlice";
 
@@ -69,9 +69,9 @@ const App: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>(); // Get sessionId from URL
   const [pageLoading, setPageLoading] = useState<boolean>(true); // Add loading state
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
 
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
-
 
   const debouncedSavePositions = useCallback(() => {
     if (timeoutIdRef.current) {
@@ -113,14 +113,17 @@ const App: React.FC = () => {
     }
     const saveNodePosition = async (node: TreeNode) => {
       console.log("tree", node, sessionId);
-      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_category`, {
-        session_id: sessionId,
-        category_id: node.value.id,
-        position: {
-          x: Math.round(node.position.x),
-          y: Math.round(node.position.y),
-        },
-      });
+      await axios.post(
+        `${process.env.REACT_APP_API_BASE_URL}/update_category`,
+        {
+          session_id: sessionId,
+          category_id: node.value.id,
+          position: {
+            x: Math.round(node.position.x),
+            y: Math.round(node.position.y),
+          },
+        }
+      );
 
       const saveChildPositions = node.children.map(saveNodePosition);
       await Promise.all(saveChildPositions);
@@ -347,16 +350,19 @@ const App: React.FC = () => {
         response.data.categories;
 
       // Create categories in the database
-      const createCategoryPromises = generatedCategories.map((category, index) =>
-        axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_category`, {
-          session_id: sessionId,
-          category: category,
-          position: {
-            x: node.position.x + (index - (generatedCategories.length - 1) / 2) * 200,
-            y: node.position.y + 150,
-          },
-          is_child_of: node.value.id, // Parent category ID
-        })
+      const createCategoryPromises = generatedCategories.map(
+        (category, index) =>
+          axios.post(`${process.env.REACT_APP_API_BASE_URL}/create_category`, {
+            session_id: sessionId,
+            category: category,
+            position: {
+              x:
+                node.position.x +
+                (index - (generatedCategories.length - 1) / 2) * 200,
+              y: node.position.y + 150,
+            },
+            is_child_of: node.value.id, // Parent category ID
+          })
       );
 
       const createCategoryResponses = await Promise.all(createCategoryPromises);
@@ -511,7 +517,6 @@ const App: React.FC = () => {
     }
   };
 
-
   // Helper function to update the node position in the tree
   const updateNodePosition = (
     node: TreeNode,
@@ -564,6 +569,13 @@ const App: React.FC = () => {
           value={openaiApiKey}
           onChange={(e) => setOpenaiApiKey(e.target.value)}
         /> */}
+        <button
+          onClick={() => {
+            navigate("/");
+          }}
+        >
+          Home
+        </button>
         <a
           href="https://chatgpt.com/g/g-uzCEPPgP5-taxonomysynthesis-formatter"
           target="_blank"
