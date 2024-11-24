@@ -286,6 +286,8 @@ const App: React.FC = () => {
       return;
     }
 
+    await bubbleUpItems(nodeToDelete);
+
     try {
       // Delete the category from the database
       await axios.post(
@@ -402,6 +404,40 @@ const App: React.FC = () => {
     } finally {
       dispatch(setLoading(false));
     }
+  };
+
+  const bubbleUpItems = async (node: TreeNode) => {
+    if (!tree) {
+      console.warn("Tree is not initialized");
+      return;
+    }
+
+    if (!node.parent) {
+      console.warn("Node has no parent");
+      return;
+    }
+
+    const parentNode = node.parent;
+
+    // Update the database
+    try {
+      await axios.post(`${process.env.REACT_APP_API_BASE_URL}/update_items`, {
+        session_id: sessionId,
+        items: node.items,
+        is_contained_inside: parentNode.value.id,
+      });
+    } catch (error) {
+      console.error("Error updating items:", error);
+      alert("Failed to update items. Please check the console for details.");
+    }
+
+    // Move items from current node to parent node
+    parentNode.items.push(...node.items);
+    node.items = [];
+
+    // Update the tree and graph
+    setTree({ ...tree });
+    updateGraph(tree);
   };
 
   const handleClassifyItems = async (node: TreeNode) => {
