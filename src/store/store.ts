@@ -2,10 +2,12 @@
 
 import { configureStore } from '@reduxjs/toolkit';
 import loadingReducer from './loadingSlice';
+import openaiAPIKeyReducer from './openaiApiKeySlice';
 
 const store = configureStore({
   reducer: {
     loading: loadingReducer,
+    openaiApiKey: openaiAPIKeyReducer,
     // Add other reducers here if needed
   },
 });

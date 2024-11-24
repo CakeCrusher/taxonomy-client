@@ -17,8 +17,9 @@ import { TreeNode, Category, Item } from "./models";
 import NodeComponent from "./NodeComponent";
 import axios from "axios";
 import { useNavigate, useParams } from "react-router-dom";
-import { useAppDispatch } from "./store/hooks";
+import { useAppDispatch, useAppSelector } from "./store/hooks";
 import { setLoading } from "./store/loadingSlice";
+import OpenaiApiKeyInput from "./components/OpenaiApiKeyInput";
 
 const transformSessionData = (sessionData: any): TreeNode => {
   const buildTree = (
@@ -62,7 +63,6 @@ const App: React.FC = () => {
   const [tree, setTree] = useState<TreeNode | null>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [openaiApiKey, setOpenaiApiKey] = useState("");
   const [numCategories, setNumCategories] = useState(0);
   const [generationMethod, setGenerationMethod] = React.useState("");
 
@@ -70,6 +70,7 @@ const App: React.FC = () => {
   const [pageLoading, setPageLoading] = useState<boolean>(true); // Add loading state
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const { openaiApiKey } = useAppSelector((state) => state.openaiApiKey);
 
   const timeoutIdRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -576,6 +577,7 @@ const App: React.FC = () => {
         >
           Home
         </button>
+        <OpenaiApiKeyInput disabled={false} />
         <a
           href="https://chatgpt.com/g/g-uzCEPPgP5-taxonomysynthesis-formatter"
           target="_blank"
